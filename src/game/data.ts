@@ -276,11 +276,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   overlord: {
     id: "overlord",
     name: "Soberano",
-    hp: 720,
-    speed: 26,
-    armor: 5,
-    bounty: 140,
-    lives: 5,
+    hp: 1350,
+    speed: 29,
+    armor: 8,
+    bounty: 160,
+    lives: 6,
     flying: false,
     radius: 26,
     color: "#ff4d6d",
@@ -385,12 +385,12 @@ export function planWave(wave: number): WavePlan {
     const tier = n / 10;
     spawns.push({ at: 1.2, lane: 0, kind: "overlord" });
     if (tier >= 2) spawns.push({ at: 2.4, lane: 1, kind: "overlord" });
-    spawns.push(...pack("tank", 2 + tier, 0.8, 1.4));
-    spawns.push(...pack("wraith", 4 + tier, 4.2, 0.7));
-    spawns.push(...pack("hex", 2, 7, 1.1));
+    spawns.push(...pack("tank", 3 + tier, 0.6, 1.25));
+    spawns.push(...pack("wraith", 5 + tier, 3.8, 0.62));
+    spawns.push(...pack("hex", 3, 6.5, 0.95));
     return {
       name: tier === 1 ? "PROTOCOLO SOBERANO" : `SOBERANO NÍVEL ${tier}`,
-      hint: "O carro vermelho é o chefe. Lança e Prisma no forte; Crio para atrasar.",
+      hint: "Soberano grosso: Lança/Prisma no Forte, Crio para atrasar, Pulso nos minions.",
       spawns,
     };
   }
