@@ -20,13 +20,13 @@ import {
   type EnemyId,
   type SpeedMode,
   type TargetMode,
-  type TileKind,
   type TowerId,
   type WavePlan,
   upgradeCost,
 } from "./data";
 import { buildMap, inBounds, samplePath, tileAt, type MapData } from "./map";
 import { clamp, dist, lerpAngle, pick, rand, type V } from "./math";
+import { lsNum, lsSet } from "./storage";
 
 export type Particle = {
   x: number;
@@ -92,6 +92,7 @@ export type Enemy = {
   burnDps: number;
   radius: number;
   demo: boolean;
+  dead: boolean;
 };
 
 export type Tower = {
@@ -124,7 +125,6 @@ export type World = {
   placing: TowerId | null;
   selected: number | null;
   hover: { c: number; r: number } | null;
-  mouse: V;
   showGrid: boolean;
   showCoverage: boolean;
   towers: Tower[];
@@ -146,6 +146,7 @@ export type World = {
   comboT: number;
   nextId: number;
   elapsed: number;
+  dpr: number;
   occupied: Set<string>;
   best: number;
   campaignOver: boolean;
@@ -178,7 +179,6 @@ export function createWorld(): World {
     placing: null,
     selected: null,
     hover: null,
-    mouse: { x: 0, y: 0 },
     showGrid: false,
     showCoverage: false,
     towers: [],
@@ -200,8 +200,9 @@ export function createWorld(): World {
     comboT: 0,
     nextId: 1,
     elapsed: 0,
+    dpr: 1,
     occupied: new Set(),
-    best: Number(localStorage.getItem(BEST_KEY) ?? "0"),
+    best: lsNum(BEST_KEY, 0),
     campaignOver: false,
     hint: "Escolha uma torre e clique no mapa para construir.",
     stats: { dmg: 0, leaked: 0, spent: 0 },
@@ -211,7 +212,8 @@ export function createWorld(): World {
 export function startRun(w: World): void {
   const map = w.map;
   const best = w.best;
-  Object.assign(w, createWorld(), { map, best, mode: "playing" as const });
+  const dpr = w.dpr;
+  Object.assign(w, createWorld(), { map, best, dpr, mode: "playing" as const });
   w.between = 4;
   w.hint = "Onda 1 em instantes. Construa nas curvas, cobrindo as duas pistas.";
   banner(w, "LINK ESTABELECIDO", "Defenda o núcleo. Ouro inicial liberado.");
@@ -348,6 +350,13 @@ export function cycleMode(t: Tower): void {
   t.mode = order[(order.indexOf(t.mode) + 1) % order.length]!;
 }
 
+function isTargetable(w: World, e: Enemy, flyingOk = true): boolean {
+  if (e.dead || e.hp <= 0) return false;
+  if (e.demo && w.mode !== "menu") return false;
+  if (e.flying && !flyingOk) return false;
+  return true;
+}
+
 function buffed(w: World, t: Tower): { range: number; rate: number; dmg: number } {
   const def = TOWERS[t.kind];
   let range = def.range[t.tier - 1]!;
@@ -368,8 +377,7 @@ function pickTarget(w: World, t: Tower, range: number, flyingOk: boolean): Enemy
   let best: Enemy | null = null;
   let score = -Infinity;
   for (const e of w.enemies) {
-    if (e.demo && w.mode !== "menu") continue;
-    if (e.flying && !flyingOk) continue;
+    if (!isTargetable(w, e, flyingOk)) continue;
     const d = dist(t.x, t.y, e.x, e.y);
     if (d > range) continue;
     let s = 0;
@@ -393,7 +401,7 @@ function deal(
   audio: AudioSys,
   pierce = 0,
 ): void {
-  if (e.hp <= 0) return;
+  if (e.dead || e.hp <= 0) return;
   const armor = Math.max(0, e.armor * (1 - pierce));
   let dmg = Math.max(raw * 0.35, raw - armor * 2.1);
   const crit = raw >= 1 && Math.random() < 0.08;
@@ -408,7 +416,9 @@ function deal(
 }
 
 function kill(w: World, e: Enemy, audio: AudioSys): void {
-  if (e.hp > -99990) e.hp = -100000;
+  if (e.dead) return;
+  e.dead = true;
+  e.hp = 0;
   const def = ENEMIES[e.kind];
   const big = e.kind === "overlord";
   burst(w, e.x, e.y, def.color, big ? 48 : 16, big ? 220 : 90, "spark");
@@ -462,6 +472,7 @@ function spawnEnemy(w: World, kind: EnemyId, lane: 0 | 1, progress = 0, demo = f
     burnDps: 0,
     radius: def.radius,
     demo,
+    dead: false,
   };
   const s = samplePath(w.map.lanes[lane]!, progress);
   e.x = s.pos.x;
@@ -530,8 +541,7 @@ function fireAt(w: World, t: Tower, e: Enemy, stats: { range: number; rate: numb
       let nxt: Enemy | null = null;
       let best = 92;
       for (const o of w.enemies) {
-        if (o.hp <= 0 || hit.includes(o)) continue;
-        if (o.demo && w.mode !== "menu") continue;
+        if (!isTargetable(w, o) || hit.includes(o)) continue;
         const d = dist(from.x, from.y, o.x, o.y);
         if (d < best) {
           best = d;
@@ -552,7 +562,8 @@ function fireAt(w: World, t: Tower, e: Enemy, stats: { range: number; rate: numb
     });
     w.bolts.push({ pts, life: 0.16, max: 0.16, color: def.color });
   } else if (t.kind === "prism") {
-    deal(w, e, stats.dmg * (1 / stats.rate), def.color, audio);
+    const baseRate = def.rate[t.tier - 1]!;
+    deal(w, e, stats.dmg / baseRate, def.color, audio);
     e.burnT = 2.4;
     e.burnDps = 7 + t.tier * 5;
     w.beams.push({ x1: t.x, y1: t.y, x2: e.x, y2: e.y, color: def.color, life: 0.08 });
@@ -564,9 +575,8 @@ function explode(w: World, p: Projectile, x: number, y: number, audio: AudioSys)
   ring(w, x, y, p.color, 12 + p.splash * 0.15);
   burst(w, x, y, p.color, p.kind === "missile" ? 20 : 10, p.kind === "missile" ? 130 : 70);
   audio.hit();
-  for (const e of w.enemies) {
-    if ((e.demo && w.mode !== "menu") || e.hp <= 0) continue;
-    if (e.flying && !p.hitsFlying) continue;
+  for (const e of w.enemies.slice()) {
+    if (!isTargetable(w, e, p.hitsFlying)) continue;
     const d = dist(x, y, e.x, e.y);
     const rad = p.splash || 14;
     if (d <= rad + e.radius) {
@@ -625,7 +635,7 @@ function tickFx(w: World, dt: number): void {
 function tickEnemies(w: World, dt: number, audio: AudioSys): void {
   for (let i = w.enemies.length - 1; i >= 0; i--) {
     const e = w.enemies[i]!;
-    if (e.hp <= 0) {
+    if (e.hp <= 0 || e.dead) {
       w.enemies.splice(i, 1);
       continue;
     }
@@ -639,7 +649,7 @@ function tickEnemies(w: World, dt: number, audio: AudioSys): void {
     if (e.kind === "hex" && e.burnT <= 0) {
       e.hp = Math.min(e.maxHp, e.hp + 10 * dt);
     }
-    if (e.hp <= 0) {
+    if (e.hp <= 0 || e.dead) {
       w.enemies.splice(i, 1);
       continue;
     }
@@ -668,7 +678,7 @@ function tickEnemies(w: World, dt: number, audio: AudioSys): void {
         w.speed = 0;
         if (w.score > w.best) {
           w.best = w.score;
-          localStorage.setItem(BEST_KEY, String(w.best));
+          lsSet(BEST_KEY, String(w.best));
         }
         audio.lose();
         banner(w, "NÚCLEO ROMPIDO", "O protocolo caiu. Reconstrua a linha.");
@@ -682,7 +692,7 @@ function tickProjectiles(w: World, dt: number, audio: AudioSys): void {
     const p = w.projs[i]!;
     p.life -= dt;
     if (p.kind === "missile") {
-      const tgt = w.enemies.find((e) => e.id === p.targetId && e.hp > 0);
+      const tgt = w.enemies.find((e) => e.id === p.targetId && isTargetable(w, e));
       if (tgt) {
         const want = Math.atan2(tgt.y - p.y, tgt.x - p.x);
         const have = Math.atan2(p.vy, p.vx);
@@ -695,8 +705,7 @@ function tickProjectiles(w: World, dt: number, audio: AudioSys): void {
     p.y += p.vy * dt;
     let hit = false;
     for (const e of w.enemies) {
-      if ((e.demo && w.mode !== "menu") || e.hp <= 0) continue;
-      if (e.flying && !p.hitsFlying) continue;
+      if (!isTargetable(w, e, p.hitsFlying)) continue;
       if (dist(p.x, p.y, e.x, e.y) <= e.radius + 6) {
         explode(w, p, e.x, e.y, audio);
         hit = true;
@@ -715,7 +724,7 @@ function tickProjectiles(w: World, dt: number, audio: AudioSys): void {
 
 function tickTowers(w: World, dt: number, audio: AudioSys): void {
   for (const t of w.towers) {
-    if (t.kind === "beacon") {
+    if (t.kind === "beacon" || TOWERS[t.kind].isAura) {
       t.angle += dt * 0.7;
       if (Math.random() < 3 * dt) {
         w.particles.push({
@@ -759,7 +768,7 @@ function tickWaves(w: World, dt: number, audio: AudioSys): void {
     w.spawnI += 1;
   }
   const spawningDone = w.spawnI >= w.plan.spawns.length;
-  const alive = w.enemies.some((e) => !e.demo);
+  const alive = w.enemies.some((e) => !e.demo && !e.dead && e.hp > 0);
   if (spawningDone && !alive) {
     w.activeWave = false;
     const clearBonus = 20 + w.wave * 4;
@@ -771,7 +780,7 @@ function tickWaves(w: World, dt: number, audio: AudioSys): void {
       w.speed = 1;
       if (w.score > w.best) {
         w.best = w.score;
-        localStorage.setItem(BEST_KEY, String(w.best));
+        lsSet(BEST_KEY, String(w.best));
       }
       audio.win();
       banner(w, "PROTOCOLO CONTIDO", "30 ondas. Continue no infinito se quiser.");
@@ -834,23 +843,21 @@ export function rangeOf(w: World, t: Tower): number {
 export function tickWorld(w: World, dt: number, audio: AudioSys): void {
   const cap = Math.min(dt, 0.05);
   tickDemo(w, cap);
-  if (w.mode === "paused") {
-    tickFx(w, cap * 0.2);
+  if (w.mode === "paused" || w.mode === "defeat" || w.mode === "victory") {
+    tickFx(w, cap * (w.mode === "paused" ? 0.2 : 1));
     return;
   }
   const steps = w.speed === 3 ? 3 : w.speed === 2 ? 2 : 1;
-  const frozen = w.speed === 0 && w.mode === "playing";
-  if (frozen) {
+  if (w.speed === 0 && w.mode === "playing") {
     tickFx(w, cap);
     return;
   }
-  const simDt = w.mode === "menu" ? cap : cap;
   for (let s = 0; s < (w.mode === "menu" ? 1 : steps); s++) {
-    tickWaves(w, simDt, audio);
-    tickTowers(w, simDt, audio);
-    tickProjectiles(w, simDt, audio);
-    tickEnemies(w, simDt, audio);
-    tickFx(w, simDt);
+    tickWaves(w, cap, audio);
+    tickTowers(w, cap, audio);
+    tickProjectiles(w, cap, audio);
+    tickEnemies(w, cap, audio);
+    tickFx(w, cap);
   }
 }
 
@@ -866,16 +873,6 @@ export function worldFromPointer(
 }
 
 export function hoverFromWorld(w: World, pos: V): void {
-  w.mouse = pos;
   const { c, r } = tileAt(pos.x, pos.y);
   w.hover = inBounds(c, r) ? { c, r } : null;
-}
-
-export function tileKind(w: World, c: number, r: number): TileKind | null {
-  if (!inBounds(c, r)) return null;
-  return w.map.tiles[r]![c]!;
-}
-
-export function goldOk(w: World, kind: TowerId): boolean {
-  return w.gold >= TOWERS[kind].cost;
 }

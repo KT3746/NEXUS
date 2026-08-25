@@ -1,5 +1,6 @@
 import {
   MAX_WAVES_CAMPAIGN,
+  SELL_RATIO,
   TARGET_LABEL,
   TOWER_ORDER,
   TOWERS,
@@ -193,8 +194,6 @@ export function mountHud(app: HTMLElement, audio: AudioSys): HudHandles {
   return handles;
 }
 
-let inspectBind = 0;
-
 export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
   const $ = (id: string) => h.root.querySelector(id)!;
   $("#m-gold").textContent = String(Math.floor(w.gold));
@@ -234,16 +233,16 @@ export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
     $("#btn-endless").classList.toggle("hidden", w.mode !== "victory");
   }
 
-  const box = h.root.querySelector("#inspect")!;
+  const box = h.root.querySelector("#inspect") as HTMLElement;
   const t = selectedTower(w);
   if (!t || w.mode === "menu") {
     box.innerHTML = `<p class="inspect-empty">Selecione uma torre no mapa para ver upgrades, venda e modo de alvo.</p>`;
-    inspectBind = 0;
+    delete box.dataset.towerId;
     return;
   }
   const def = TOWERS[t.kind];
   const up = t.tier < 3 ? upgradeCost(def, t.tier) : 0;
-  const sell = Math.round(t.spent * 0.62);
+  const sell = Math.round(t.spent * SELL_RATIO);
   const html = `
     <p class="tag">${def.name} · Nível ${t.tier}</p>
     <h3>${def.name}</h3>
@@ -261,7 +260,7 @@ export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
       <button class="btn danger" id="sl">Vender ${sell}</button>
     </div>
   `;
-  if (box.innerHTML.includes("inspect-actions") && inspectBind === t.id) {
+  if (box.dataset.towerId === String(t.id)) {
     const upBtn = box.querySelector("#up") as HTMLButtonElement | null;
     if (upBtn) {
       upBtn.disabled = t.tier >= 3 || w.gold < up;
@@ -274,7 +273,7 @@ export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
     return;
   }
   box.innerHTML = html;
-  inspectBind = t.id;
+  box.dataset.towerId = String(t.id);
   box.querySelector("#up")?.addEventListener("click", () => h.onUpgrade());
   box.querySelector("#md")?.addEventListener("click", () => h.onMode());
   box.querySelector("#sl")?.addEventListener("click", () => h.onSell());

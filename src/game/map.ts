@@ -4,7 +4,6 @@ import { dist, type V } from "./math";
 export type MapData = {
   tiles: TileKind[][];
   lanes: V[][];
-  lengths: number[];
   core: V;
 };
 
@@ -24,16 +23,6 @@ function paintLine(tiles: TileKind[][], ax: number, ay: number, bx: number, by: 
       }
     }
   }
-}
-
-function polylineLength(pts: V[]): number {
-  let s = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]!;
-    const b = pts[i]!;
-    s += dist(a.x, a.y, b.x, b.y);
-  }
-  return s;
 }
 
 export function buildMap(): MapData {
@@ -61,10 +50,14 @@ export function buildMap(): MapData {
     }
   }
 
-  tiles[3]![0] = "spawn";
-  tiles[10]![0] = "spawn";
-  tiles[3]![1] = "path";
-  tiles[10]![1] = "path";
+  for (const lane of LANES) {
+    const start = lane[0]!;
+    const r = Math.round(start.y);
+    if (r >= 0 && r < ROWS) {
+      tiles[r]![0] = "spawn";
+      if (1 < COLS && tiles[r]![1] !== "core") tiles[r]![1] = "path";
+    }
+  }
 
   for (const [c, r] of DECOR) {
     if (r >= 0 && c >= 0 && r < ROWS && c < COLS && tiles[r]![c] === "build") {
@@ -75,7 +68,6 @@ export function buildMap(): MapData {
   return {
     tiles,
     lanes,
-    lengths: lanes.map(polylineLength),
     core: { x: 20.2 * TILE, y: 6.5 * TILE },
   };
 }

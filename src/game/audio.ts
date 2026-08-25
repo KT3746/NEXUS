@@ -1,35 +1,43 @@
+import { lsGet, lsNum, lsSet } from "./storage";
+
 const LS_MUTE = "nexus-mute";
 const LS_VOL = "nexus-vol";
 
 export class AudioSys {
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
-  muted = localStorage.getItem(LS_MUTE) === "1";
-  volume = Number(localStorage.getItem(LS_VOL) ?? "0.55");
+  muted = lsGet(LS_MUTE, "0") === "1";
+  volume = lsNum(LS_VOL, 0.55);
   amb: { stop: () => void } | null = null;
   unlocked = false;
+  unlocking = false;
 
   async unlock(): Promise<void> {
-    if (this.unlocked) return;
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx = new Ctx();
-    this.master = this.ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : this.volume;
-    this.master.connect(this.ctx.destination);
-    if (this.ctx.state === "suspended") await this.ctx.resume();
-    this.unlocked = true;
-    this.startAmbient();
+    if (this.unlocked || this.unlocking) return;
+    this.unlocking = true;
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.ctx = new Ctx();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : this.volume;
+      this.master.connect(this.ctx.destination);
+      if (this.ctx.state === "suspended") await this.ctx.resume();
+      this.unlocked = true;
+      this.startAmbient();
+    } finally {
+      this.unlocking = false;
+    }
   }
 
   setMuted(v: boolean): void {
     this.muted = v;
-    localStorage.setItem(LS_MUTE, v ? "1" : "0");
+    lsSet(LS_MUTE, v ? "1" : "0");
     if (this.master) this.master.gain.value = v ? 0 : this.volume;
   }
 
   setVolume(v: number): void {
     this.volume = v;
-    localStorage.setItem(LS_VOL, String(v));
+    lsSet(LS_VOL, String(v));
     if (this.master && !this.muted) this.master.gain.value = v;
   }
 

@@ -24,6 +24,7 @@ export class Game {
   world: World;
   audio: AudioSys;
   hud: HudHandles;
+  ctx: CanvasRenderingContext2D | null = null;
   help = false;
   last = 0;
   running = false;
@@ -47,8 +48,7 @@ export class Game {
       const dt = Math.min(0.05, (now - this.last) / 1000);
       this.last = now;
       tickWorld(this.world, dt, this.audio);
-      const ctx = this.hud.canvas.getContext("2d");
-      if (ctx) renderWorld(ctx, this.world);
+      if (this.ctx) renderWorld(this.ctx, this.world);
       syncHud(this.hud, this.world, this.audio);
       requestAnimationFrame(loop);
     };
@@ -69,11 +69,9 @@ export class Game {
     canvas.style.height = `${cssH}px`;
     canvas.width = Math.floor(WORLD_W * dpr);
     canvas.height = Math.floor(WORLD_H * dpr);
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-    }
+    this.world.dpr = dpr;
+    this.ctx = canvas.getContext("2d");
+    if (this.ctx) this.ctx.imageSmoothingEnabled = true;
   }
 
   private bind(): void {
@@ -113,7 +111,9 @@ export class Game {
     };
     h.onContinue = () => continueEndless(this.world);
     h.onMenu = () => {
+      const dpr = this.world.dpr;
       this.world = createWorld();
+      this.world.dpr = dpr;
       this.help = false;
       setHelp(h, false);
     };
@@ -169,9 +169,13 @@ export class Game {
         setHelp(h, false);
         return;
       }
-      const num = TOWER_ORDER[Number(e.key) - 1];
-      if (num && this.world.mode === "playing") {
-        this.setPlacing(num);
+      if (e.shiftKey && e.code === "Digit1") {
+        this.world.speed = 1;
+        return;
+      }
+      const digit = /^Digit([1-7])$/.exec(e.code);
+      if (digit && this.world.mode === "playing") {
+        this.setPlacing(TOWER_ORDER[Number(digit[1]) - 1]!);
         return;
       }
       if (e.code === "Space") {
@@ -190,7 +194,6 @@ export class Game {
       if (e.key === "g" || e.key === "G") this.world.showGrid = !this.world.showGrid;
       if (e.key === "c" || e.key === "C") this.world.showCoverage = !this.world.showCoverage;
       if (e.key === "n" || e.key === "N") callWave(this.world, this.audio);
-      if (e.key === "1" && e.shiftKey) this.world.speed = 1;
       if (e.key === "+" || e.key === "=") this.world.speed = Math.min(3, (this.world.speed || 1) + 1) as 1 | 2 | 3;
       if (e.key === "-" || e.key === "_") {
         const s = this.world.speed || 1;

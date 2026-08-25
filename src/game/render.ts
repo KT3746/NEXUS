@@ -1,4 +1,4 @@
-import { COLS, ENEMIES, ROWS, TILE, TOWERS, WORLD_H, WORLD_W } from "./data";
+import { COLS, ENEMIES, ROWS, START_LIVES, TILE, TOWERS, WORLD_H, WORLD_W } from "./data";
 import { hash } from "./math";
 import { canBuild, rangeOf, type Enemy, type Tower, type World } from "./sim";
 
@@ -138,7 +138,7 @@ function drawTiles(ctx: CanvasRenderingContext2D, w: World, t: number): void {
 
 function drawCore(ctx: CanvasRenderingContext2D, w: World, t: number): void {
   const { x, y } = w.map.core;
-  const danger = w.mode === "playing" ? 1 - w.lives / 25 : 0.2;
+  const danger = w.mode === "playing" ? 1 - w.lives / START_LIVES : 0.2;
   glow(ctx, x, y, 90, danger > 0.5 ? "#ff4d6d" : "#5ce1ff", 0.28 + 0.1 * Math.sin(t * 2));
   ctx.save();
   ctx.translate(x, y);
@@ -573,9 +573,12 @@ function drawBanners(ctx: CanvasRenderingContext2D, w: World): void {
 }
 
 export function renderWorld(ctx: CanvasRenderingContext2D, w: World): void {
+  const dpr = w.dpr || 1;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, WORLD_W, WORLD_H);
   const shakeX = (hash(w.elapsed * 40) - 0.5) * w.shake * 16;
   const shakeY = (hash(w.elapsed * 40 + 5) - 0.5) * w.shake * 16;
-  ctx.setTransform(1, 0, 0, 1, shakeX, shakeY);
+  ctx.setTransform(dpr, 0, 0, dpr, shakeX * dpr, shakeY * dpr);
   drawBackground(ctx, w.elapsed);
   drawTiles(ctx, w, w.elapsed);
   drawCoverage(ctx, w);
@@ -589,7 +592,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, w: World): void {
   for (const e of flying) drawEnemy(ctx, e, w.elapsed);
   drawParticles(ctx, w);
   drawGhost(ctx, w);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawMinimap(ctx, w);
   drawBanners(ctx, w);
   if (w.flash > 0) {
