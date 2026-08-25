@@ -1,4 +1,5 @@
 import {
+  GAME_VERSION,
   MAX_WAVES_CAMPAIGN,
   SELL_RATIO,
   TARGET_LABEL,
@@ -78,7 +79,7 @@ export function mountHud(app: HTMLElement, audio: AudioSys): HudHandles {
 
       <div class="overlay" id="ov-menu">
         <div class="panel hero">
-          <p class="eyebrow">demonstração cursor · tower defense</p>
+          <p class="eyebrow">versão ${GAME_VERSION} · tower defense</p>
           <h1>NEXUS</h1>
           <h2>Última Linha</h2>
           <p class="lead">Duas pistas de invasores correm rumo ao núcleo. Sete torres, chefes a cada dez ondas, áudio sintético, partículas e uma campanha de 30 ondas — depois o infinito.</p>

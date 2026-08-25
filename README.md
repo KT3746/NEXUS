@@ -2,6 +2,16 @@
 
 Tower defense neon feito para o Thomas explorar o que o Cursor consegue montar em um único projeto: motor de jogo, mapa com duas pistas, sete torres, ondas com chefes, áudio sintético, partículas e uma interface em português.
 
+## Versão 1.0 (ponto de restauração)
+
+Esta é a versão definitiva **antes** das evoluções grandes. No GitHub ela aparece como:
+
+- tag **`v1.0.0`**
+- Release **NEXUS 1.0** em https://github.com/KT3746/NEXUS/releases
+- ramo **`v1.0`** (não mexa nele; o trabalho novo continua no `main`)
+
+Para voltar a este jogo depois: no GitHub Desktop, mude o branch atual para `v1.0`, depois rode o `jogar.bat` de novo. Para continuar as novidades, volte para `main`.
+
 ## Como jogar
 
 1. Clique em **Iniciar defesa**.
@@ -77,11 +87,6 @@ Feche a janela preta ou aperte `Ctrl+C` nela. O Chrome sozinho não desliga o se
 ### 6. Depois de um Pull
 
 Se o `jogar.bat` / `npm run dev` já estiver ligado, um F5 no Chrome costuma bastar. Se a tela ficar estranha, feche a janela preta e rode o `jogar.bat` de novo.
-
-```bash
-npm run build
-npm run preview
-```
 
 Não precisa de conta, banco de dados nem chave de API. O recorde fica salvo no navegador (`localStorage`).
 

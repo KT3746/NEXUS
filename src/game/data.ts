@@ -11,6 +11,8 @@ export const START_LIVES = 25;
 export const WAVE_COUNTDOWN = 12;
 export const SELL_RATIO = 0.62;
 export const MAX_WAVES_CAMPAIGN = 30;
+/** Snapshot gravado antes das evoluções grandes. */
+export const GAME_VERSION = "1.0.0";
 
 export type TileKind = "build" | "path" | "block" | "core" | "spawn";
 export type TowerId =
