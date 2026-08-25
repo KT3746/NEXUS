@@ -73,7 +73,7 @@ export function mountHud(app: HTMLElement, audio: AudioSys): HudHandles {
 
       <footer class="dock">
         <div class="cards" id="cards"></div>
-        <p class="dock-help">Atalhos: <kbd>1–7</kbd> torres · <kbd>U</kbd> upgrade · <kbd>X</kbd> vender · <kbd>T</kbd> alvo · <kbd>G</kbd> grade · <kbd>C</kbd> cobertura · <kbd>Esc</kbd> cancelar</p>
+        <p class="dock-help">Atalhos: <kbd>1–7</kbd> torres · <kbd>E</kbd> ou <kbd>U</kbd> evoluir · <kbd>X</kbd> vender · <kbd>T</kbd> alvo · <kbd>G</kbd> grade · <kbd>C</kbd> cobertura · <kbd>Esc</kbd> cancelar</p>
       </footer>
 
       <div class="overlay" id="ov-menu">
@@ -101,7 +101,7 @@ export function mountHud(app: HTMLElement, audio: AudioSys): HudHandles {
           <ol>
             <li>Escolha uma torre na barra de baixo (ou teclas 1–7) e clique num quadrado livre.</li>
             <li>O caminho brilhante é a pista: ali ninguém constrói. Prefira curvas e o ponto em que as pistas se aproximam.</li>
-            <li>Clique numa torre já construída para melhorar (U) ou vender (X). Troque o alvo com T: primeiro, último, mais forte ou mais perto.</li>
+            <li>Clique numa torre já construída. Com ela selecionada, aperte <kbd>E</kbd> ou <kbd>U</kbd> para evoluir, <kbd>X</kbd> para vender, <kbd>T</kbd> para trocar o alvo (primeiro, último, mais forte, mais perto).</li>
             <li>Espectros voam — Pulso quase não os alcança. Use Lança, Arco, Crio, Míssil ou Prisma.</li>
             <li>Farol não atira: ele deixa as torres vizinhas mais rápidas e com mais alcance.</li>
             <li>Antecipar a onda (N) dá ouro extra. Sobreviva 30 ondas para vencer a campanha.</li>
@@ -236,14 +236,25 @@ export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
   const box = h.root.querySelector("#inspect") as HTMLElement;
   const t = selectedTower(w);
   if (!t || w.mode === "menu") {
-    box.innerHTML = `<p class="inspect-empty">Selecione uma torre no mapa para ver upgrades, venda e modo de alvo.</p>`;
+    box.innerHTML = `<p class="inspect-empty">Selecione uma torre no mapa. Depois aperte <kbd>E</kbd> para evoluir, <kbd>T</kbd> para o alvo, <kbd>X</kbd> para vender.</p>`;
     delete box.dataset.towerId;
+    delete box.dataset.fp;
     return;
   }
   const def = TOWERS[t.kind];
   const up = t.tier < 3 ? upgradeCost(def, t.tier) : 0;
   const sell = Math.round(t.spent * SELL_RATIO);
-  const html = `
+  const fp = `${t.id}:${t.tier}:${t.mode}:${t.spent}`;
+  const upLabel = t.tier >= 3 ? "Máximo" : `Evoluir ${up} (E)`;
+  if (box.dataset.fp === fp) {
+    const upBtn = box.querySelector("#up") as HTMLButtonElement | null;
+    if (upBtn) {
+      upBtn.disabled = t.tier >= 3 || w.gold < up;
+      upBtn.textContent = upLabel;
+    }
+    return;
+  }
+  box.innerHTML = `
     <p class="tag">${def.name} · Nível ${t.tier}</p>
     <h3>${def.name}</h3>
     <p class="blurb">${def.blurb}</p>
@@ -253,26 +264,15 @@ export function syncHud(h: HudHandles, w: World, audio: AudioSys): void {
       <li><span>Cadência</span><b>${def.rate[t.tier - 1]}/s</b></li>
       <li><span>Extra</span><b>${def.extra}</b></li>
     </ul>
-    <p class="mode">Alvo: <strong>${TARGET_LABEL[t.mode]}</strong></p>
+    <p class="mode">Alvo: <strong>${TARGET_LABEL[t.mode]}</strong> <span class="k">(T)</span></p>
     <div class="inspect-actions">
-      <button class="btn primary" id="up" ${t.tier >= 3 || w.gold < up ? "disabled" : ""}>${t.tier >= 3 ? "Máximo" : `Upgrade ${up}`}</button>
-      <button class="btn ghost" id="md">Trocar alvo</button>
-      <button class="btn danger" id="sl">Vender ${sell}</button>
+      <button class="btn primary" id="up" ${t.tier >= 3 || w.gold < up ? "disabled" : ""}>${upLabel}</button>
+      <button class="btn ghost" id="md">Trocar alvo (T)</button>
+      <button class="btn danger" id="sl">Vender ${sell} (X)</button>
     </div>
+    <p class="inspect-empty">Com a torre marcada, <kbd>E</kbd> evolui sem ir até o botão.</p>
   `;
-  if (box.dataset.towerId === String(t.id)) {
-    const upBtn = box.querySelector("#up") as HTMLButtonElement | null;
-    if (upBtn) {
-      upBtn.disabled = t.tier >= 3 || w.gold < up;
-      upBtn.textContent = t.tier >= 3 ? "Máximo" : `Upgrade ${up}`;
-    }
-    const sl = box.querySelector("#sl");
-    if (sl) sl.textContent = `Vender ${sell}`;
-    const md = box.querySelector(".mode strong");
-    if (md) md.textContent = TARGET_LABEL[t.mode];
-    return;
-  }
-  box.innerHTML = html;
+  box.dataset.fp = fp;
   box.dataset.towerId = String(t.id);
   box.querySelector("#up")?.addEventListener("click", () => h.onUpgrade());
   box.querySelector("#md")?.addEventListener("click", () => h.onMode());

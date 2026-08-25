@@ -188,7 +188,13 @@ export class Game {
         this.world.selected = null;
         return;
       }
-      if (e.key === "u" || e.key === "U") tryUpgrade(this.world, this.audio);
+      if (e.key === "e" || e.key === "E" || e.key === "u" || e.key === "U") {
+        if (!tryUpgrade(this.world, this.audio) && this.world.mode === "playing") {
+          this.world.hint = selectedTower(this.world)
+            ? "Ouro insuficiente ou a torre já está no nível 3."
+            : "Clique numa torre do mapa e aperte E para evoluir.";
+        }
+      }
       if (e.key === "x" || e.key === "X" || e.key === "Backspace") trySell(this.world, this.audio);
       if (e.key === "t" || e.key === "T") h.onMode();
       if (e.key === "g" || e.key === "G") this.world.showGrid = !this.world.showGrid;
