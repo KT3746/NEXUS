@@ -650,8 +650,8 @@ function tickEnemies(w: World, dt: number, audio: AudioSys): void {
       e.hp = Math.min(e.maxHp, e.hp + 10 * dt);
     }
     if (e.kind === "overlord") {
-      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.009 * dt);
-      if (Math.random() < 1.6 * dt) ring(w, e.x, e.y, "#ff4d6d", 22);
+      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.004 * dt);
+      if (Math.random() < 1.2 * dt) ring(w, e.x, e.y, "#ff4d6d", 22);
     }
     if (e.hp <= 0 || e.dead) {
       w.enemies.splice(i, 1);
