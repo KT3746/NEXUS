@@ -102,7 +102,7 @@ export function mountHud(app: HTMLElement, audio: AudioSys): HudHandles {
             <li>Escolha uma torre na barra de baixo (ou teclas 1–7) e clique num quadrado livre.</li>
             <li>O caminho brilhante é a pista: ali ninguém constrói. Prefira curvas e o ponto em que as pistas se aproximam.</li>
             <li>Clique numa torre já construída. Com ela selecionada, aperte <kbd>E</kbd> ou <kbd>U</kbd> para evoluir, <kbd>X</kbd> para vender, <kbd>T</kbd> para trocar o alvo (primeiro, último, mais forte, mais perto).</li>
-            <li>Espectros voam — Pulso quase não os alcança. Use Lança, Arco, Crio, Míssil ou Prisma.</li>
+            <li>Espectros voam — Pulso (verde, explosão) não os acerta. Crio (azul, gelo) atrasa e acerta voadores. Lança, Arco, Míssil e Prisma também acertam.</li>
             <li>Farol não atira: ele deixa as torres vizinhas mais rápidas e com mais alcance.</li>
             <li>Antecipar a onda (N) dá ouro extra. Sobreviva 30 ondas para vencer a campanha.</li>
           </ol>

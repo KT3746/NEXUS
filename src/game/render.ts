@@ -218,22 +218,29 @@ function drawTower(ctx: CanvasRenderingContext2D, t: Tower, selected: boolean, t
   ctx.lineWidth = 1.2;
 
   if (t.kind === "pulse") {
-    roundRect(ctx, -7, -8, 22, 16, 3);
+    roundRect(ctx, -8, -9, 24, 18, 4);
     ctx.fill();
-    ctx.fillStyle = "#d9f7ff";
-    ctx.fillRect(12, -3, 8, 6);
+    ctx.fillStyle = "#d8ffd8";
+    ctx.fillRect(12, -4, 10, 8);
+    ctx.fillStyle = def.color2;
+    ctx.fillRect(-6, -5, 8, 10);
   } else if (t.kind === "frost") {
     ctx.beginPath();
-    ctx.moveTo(18, 0);
-    ctx.lineTo(-8, -10);
-    ctx.lineTo(-8, 10);
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-6, -11);
+    ctx.lineTo(-2, 0);
+    ctx.lineTo(-6, 11);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = "#eaf6ff";
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(6, -6);
-    ctx.lineTo(14, 0);
-    ctx.lineTo(6, 6);
+    ctx.moveTo(0, -8);
+    ctx.lineTo(0, 8);
+    ctx.moveTo(-6, -4);
+    ctx.lineTo(8, 4);
+    ctx.moveTo(-6, 4);
+    ctx.lineTo(8, -4);
     ctx.stroke();
   } else if (t.kind === "arc") {
     ctx.strokeStyle = def.color;
@@ -325,20 +332,33 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number): void 
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-  } else if (e.kind === "tank" || e.kind === "overlord") {
+  } else if (e.kind === "tank") {
     const s = e.radius;
-    roundRect(ctx, -s, -s * 0.75, s * 2, s * 1.5, 4);
+    roundRect(ctx, -s, -s * 0.7, s * 2, s * 1.4, 3);
     ctx.fill();
     ctx.stroke();
-    ctx.strokeStyle = "#d0d7e4";
-    ctx.strokeRect(-s * 0.55, -s * 0.4, s * 1.1, s * 0.8);
-    if (e.kind === "overlord") {
-      ctx.rotate(time);
-      ctx.strokeStyle = "#ff4d6d";
-      ctx.beginPath();
-      ctx.arc(0, 0, s * 0.9, 0, Math.PI * 1.4);
-      ctx.stroke();
-    }
+    ctx.fillStyle = "#5a6578";
+    ctx.fillRect(-s * 0.35, -s * 0.35, s * 0.7, s * 0.7);
+  } else if (e.kind === "overlord") {
+    const s = e.radius;
+    roundRect(ctx, -s, -s * 0.62, s * 2.1, s * 1.24, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = def.color2;
+    roundRect(ctx, -s * 0.15, -s * 0.42, s * 1.05, s * 0.84, 3);
+    ctx.fill();
+    ctx.fillStyle = "#fff1b0";
+    ctx.beginPath();
+    ctx.moveTo(s * 0.15, -s * 0.55);
+    ctx.lineTo(s * 0.45, -s * 0.2);
+    ctx.lineTo(-s * 0.15, -s * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#ffd0d6";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s * 0.55, 0, s * 0.28, 0, Math.PI * 2);
+    ctx.stroke();
   } else if (e.kind === "swarm") {
     ctx.beginPath();
     ctx.arc(-3, -2, 4, 0, Math.PI * 2);
@@ -381,12 +401,19 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number): void 
   ctx.restore();
 
   const ratio = Math.max(0, e.hp / e.maxHp);
-  const bw = e.radius * 2.2;
-  const bh = e.kind === "overlord" ? 5 : 3;
+  const bw = e.kind === "overlord" ? e.radius * 2.6 : e.radius * 2.2;
+  const bh = e.kind === "overlord" ? 6 : 3;
+  const barY = e.y - e.radius - (e.kind === "overlord" ? 16 : 10);
+  if (e.kind === "overlord") {
+    ctx.font = "800 10px Oxanium, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffd0d6";
+    ctx.fillText("SOBERANO", e.x, barY - 4);
+  }
   ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.fillRect(e.x - bw / 2, e.y - e.radius - 10, bw, bh);
+  ctx.fillRect(e.x - bw / 2, barY, bw, bh);
   ctx.fillStyle = ratio > 0.5 ? "#7dffc3" : ratio > 0.25 ? "#ffe36a" : "#ff4d6d";
-  ctx.fillRect(e.x - bw / 2, e.y - e.radius - 10, bw * ratio, bh);
+  ctx.fillRect(e.x - bw / 2, barY, bw * ratio, bh);
 }
 
 function drawProjectiles(ctx: CanvasRenderingContext2D, w: World): void {
@@ -402,9 +429,17 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, w: World): void {
       ctx.lineTo(-8, -4);
       ctx.lineTo(-8, 4);
       ctx.fill();
+    } else if (p.kind === "frost") {
+      ctx.beginPath();
+      ctx.moveTo(6, 0);
+      ctx.lineTo(0, 5);
+      ctx.lineTo(-6, 0);
+      ctx.lineTo(0, -5);
+      ctx.closePath();
+      ctx.fill();
     } else {
       ctx.beginPath();
-      ctx.arc(0, 0, p.kind === "frost" ? 4 : 3.2, 0, Math.PI * 2);
+      ctx.arc(0, 0, 4.2, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

@@ -67,26 +67,26 @@ export const TOWERS: Record<TowerId, TowerDef> = {
   pulse: {
     id: "pulse",
     name: "Pulso",
-    blurb: "Canhão de impacto com explosão em área. O básico confiável.",
+    blurb: "Canhão verde de impacto. Explode em área; não acerta espectros.",
     hotkey: "1",
     cost: 70,
-    color: "#5ce1ff",
-    color2: "#1a6a88",
+    color: "#3ee06a",
+    color2: "#145a2c",
     hitsFlying: false,
     isAura: false,
     range: [150, 168, 190],
-    damage: [22, 34, 52],
+    damage: [26, 40, 62],
     rate: [0.85, 1.05, 1.28],
-    extra: "Splash 42 / 54 / 70",
+    extra: "Splash 48 / 62 / 80",
   },
   frost: {
     id: "frost",
     name: "Crio",
-    blurb: "Congela o avanço. Pouco dano, muito controle de onda.",
+    blurb: "Cristal de gelo azul. Pouco dano; congela e acerta voadores.",
     hotkey: "2",
     cost: 90,
-    color: "#9be8ff",
-    color2: "#2a6f9a",
+    color: "#7ecbff",
+    color2: "#1a4a7a",
     hitsFlying: true,
     isAura: false,
     range: [140, 155, 175],
@@ -276,11 +276,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   overlord: {
     id: "overlord",
     name: "Soberano",
-    hp: 2400,
-    speed: 32,
-    armor: 12,
-    bounty: 120,
-    lives: 8,
+    hp: 720,
+    speed: 26,
+    armor: 5,
+    bounty: 140,
+    lives: 5,
     flying: false,
     radius: 26,
     color: "#ff4d6d",
@@ -385,12 +385,12 @@ export function planWave(wave: number): WavePlan {
     const tier = n / 10;
     spawns.push({ at: 1.2, lane: 0, kind: "overlord" });
     if (tier >= 2) spawns.push({ at: 2.4, lane: 1, kind: "overlord" });
-    spawns.push(...pack("tank", 4 + tier * 2, 0.4, 1.1));
-    spawns.push(...pack("wraith", 6 + tier * 2, 3.5, 0.55));
-    spawns.push(...pack("hex", 4, 6, 0.8));
+    spawns.push(...pack("tank", 2 + tier, 0.8, 1.4));
+    spawns.push(...pack("wraith", 4 + tier, 4.2, 0.7));
+    spawns.push(...pack("hex", 2, 7, 1.1));
     return {
       name: tier === 1 ? "PROTOCOLO SOBERANO" : `SOBERANO NÍVEL ${tier}`,
-      hint: "Chefe na pista. Concentre fogo e controle de grupo.",
+      hint: "O carro vermelho é o chefe. Lança e Prisma no forte; Crio para atrasar.",
       spawns,
     };
   }
@@ -398,7 +398,7 @@ export function planWave(wave: number): WavePlan {
   if (n === 1) {
     return {
       name: "SINAL INICIAL",
-      hint: "Construa Pulso nos gargalos das duas pistas.",
+      hint: "Canhão verde (Pulso) nos gargalos. Crio azul só para atrasar.",
       spawns: pack("bit", 8, 0.3, 0.7),
     };
   }
@@ -474,7 +474,7 @@ export function upgradeCost(def: TowerDef, fromTier: number): number {
 }
 
 export function splashFor(id: TowerId, tier: number): number {
-  if (id === "pulse") return [42, 54, 70][tier - 1]!;
+  if (id === "pulse") return [48, 62, 80][tier - 1]!;
   if (id === "missile") return [78, 96, 118][tier - 1]!;
   return 0;
 }

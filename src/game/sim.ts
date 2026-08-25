@@ -450,7 +450,7 @@ function kill(w: World, e: Enemy, audio: AudioSys): void {
 function spawnEnemy(w: World, kind: EnemyId, lane: 0 | 1, progress = 0, demo = false): Enemy {
   const def = ENEMIES[kind];
   const scale = enemyScale(Math.max(1, w.wave));
-  const hp = Math.round(def.hp * (demo ? 0.7 : scale.hp) * (kind === "overlord" ? 1 + w.wave * 0.04 : 1));
+  const hp = Math.round(def.hp * (demo ? 0.7 : scale.hp));
   const e: Enemy = {
     id: uid(w),
     kind,
